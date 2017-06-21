@@ -15,15 +15,15 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         // Set the background color to black ( rgba ).
-        gl.glClearColor(1.0f, 0.5f, 0.5f, 0.5f);  // OpenGL docs.
+        gl.glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
         // Enable Smooth Shading, default not really needed.
-        gl.glShadeModel(GL10.GL_SMOOTH);// OpenGL docs.
+        gl.glShadeModel(GL10.GL_SMOOTH);
         // Depth buffer setup.
-        gl.glClearDepthf(1.0f);// OpenGL docs.
+        gl.glClearDepthf(1.0f);
         // Enables depth testing.
-        gl.glEnable(GL10.GL_DEPTH_TEST);// OpenGL docs.
+        gl.glEnable(GL10.GL_DEPTH_TEST);
         // The type of depth testing to do.
-        gl.glDepthFunc(GL10.GL_LEQUAL);// OpenGL docs.
+        gl.glDepthFunc(GL10.GL_LEQUAL);
         // Really nice perspective calculations.
         gl.glHint(GL10.GL_PERSPECTIVE_CORRECTION_HINT, GL10.GL_NICEST);
 
