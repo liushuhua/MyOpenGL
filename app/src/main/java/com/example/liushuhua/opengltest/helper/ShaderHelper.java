@@ -1,16 +1,24 @@
-package com.example.liushuhua.opengltest;
+package com.example.liushuhua.opengltest.helper;
 
 import com.example.liushuhua.opengltest.utils.LogUtils;
 
 import static android.opengl.GLES20.GL_COMPILE_STATUS;
 import static android.opengl.GLES20.GL_FRAGMENT_SHADER;
+import static android.opengl.GLES20.GL_LINK_STATUS;
+import static android.opengl.GLES20.GL_VALIDATE_STATUS;
 import static android.opengl.GLES20.GL_VERTEX_SHADER;
+import static android.opengl.GLES20.glAttachShader;
 import static android.opengl.GLES20.glCompileShader;
+import static android.opengl.GLES20.glCreateProgram;
 import static android.opengl.GLES20.glCreateShader;
+import static android.opengl.GLES20.glDeleteProgram;
 import static android.opengl.GLES20.glDeleteShader;
+import static android.opengl.GLES20.glGetProgramiv;
 import static android.opengl.GLES20.glGetShaderInfoLog;
 import static android.opengl.GLES20.glGetShaderiv;
+import static android.opengl.GLES20.glLinkProgram;
 import static android.opengl.GLES20.glShaderSource;
+import static android.opengl.GLES20.glValidateProgram;
 
 /**
  * Created by LiuShuHua on 2017/6/26.
@@ -59,5 +67,44 @@ public class ShaderHelper {
         }
         //说明着色器编译成功,返回编译器
         return shaderObjectId;
+    }
+
+    /**
+     * 关联到Program
+     *
+     * @param vertexShaderId   顶点shader
+     * @param fragmentShaderId 片shader
+     * @return Program对象(programObjectId)
+     */
+    public static int linkProgram(int vertexShaderId, int fragmentShaderId) {
+        int programObjectId = glCreateProgram();
+        if (programObjectId == 0) {
+            LogUtils.w(TAG, "Could not create Program");
+        }
+        //绑定顶点和面
+        glAttachShader(programObjectId, vertexShaderId);
+        glAttachShader(programObjectId, fragmentShaderId);
+        //把着色器联合起来
+        glLinkProgram(programObjectId);
+        final int[] linkStatus = new int[1];
+        glGetProgramiv(programObjectId, GL_LINK_STATUS, linkStatus, 0);
+        if (linkStatus[0] == 0) {
+            glDeleteProgram(programObjectId);
+            LogUtils.w(TAG, "Compile of program failed");
+        }
+        return programObjectId;
+    }
+
+    /**
+     * 证实Program是否可用
+     * @param program program
+     * @return 是否可用
+     */
+    public static boolean validateStatus(int program) {
+        glValidateProgram(program);
+        final int[] validateStatus = new int[1];
+        glGetProgramiv(program, GL_VALIDATE_STATUS, validateStatus, 0);
+        LogUtils.w(TAG, "Result of validating program: " + validateStatus[0]);
+        return validateStatus[0] != 0;
     }
 }
