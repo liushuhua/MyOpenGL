@@ -4,30 +4,18 @@ import android.content.Context;
 import android.opengl.GLSurfaceView;
 
 import com.example.liushuhua.opengltest.helper.MatrixHelper;
-import com.example.liushuhua.opengltest.helper.ShaderHelper;
-import com.example.liushuhua.opengltest.utils.TextResourceReader;
-
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
+import com.example.liushuhua.opengltest.helper.TextureHelper;
+import com.example.liushuhua.opengltest.mode.Mallet;
+import com.example.liushuhua.opengltest.mode.Table;
+import com.example.liushuhua.opengltest.program.ColorShaderProgram;
+import com.example.liushuhua.opengltest.program.TextureShaderProgram;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 import static android.opengl.GLES20.GL_COLOR_BUFFER_BIT;
-import static android.opengl.GLES20.GL_FLOAT;
-import static android.opengl.GLES20.GL_LINES;
-import static android.opengl.GLES20.GL_POINTS;
-import static android.opengl.GLES20.GL_TRIANGLE_FAN;
 import static android.opengl.GLES20.glClear;
 import static android.opengl.GLES20.glClearColor;
-import static android.opengl.GLES20.glDrawArrays;
-import static android.opengl.GLES20.glEnableVertexAttribArray;
-import static android.opengl.GLES20.glGetAttribLocation;
-import static android.opengl.GLES20.glGetUniformLocation;
-import static android.opengl.GLES20.glUniformMatrix4fv;
-import static android.opengl.GLES20.glUseProgram;
-import static android.opengl.GLES20.glVertexAttribPointer;
 import static android.opengl.GLES20.glViewport;
 import static android.opengl.Matrix.multiplyMM;
 import static android.opengl.Matrix.rotateM;
@@ -45,44 +33,17 @@ import static android.opengl.Matrix.translateM;
  */
 
 public class OpenGLRenderer implements GLSurfaceView.Renderer {
-    private static final int BYTES_PER_FLOAT = 4;
-    private static final int POSITION_COMPONENT_COUNT = 2;
-    private final FloatBuffer verticesData;
-    private Context context;
-    private static final String A_POSITION = "a_Position";
-    //颜色
-    private static final int COLOR_COMPONENT_COUNT = 3;
-    private static final String A_COLOR = "a_Color";
-    private static final int STRIDE = (POSITION_COMPONENT_COUNT + COLOR_COMPONENT_COUNT) * BYTES_PER_FLOAT;
-    //矩阵
-    private static final String U_MATRIX = "u_Matrix";
     private final float[] projectionMatrix = new float[16];
-    private int uMatrixLocation;
     private final float[] modelMatrix = new float[16];
+    private Context context;
+    private Table table;
+    private Mallet mallet;
+    private TextureShaderProgram textureShaderProgram;
+    private ColorShaderProgram colorShaderProgram;
+    private int texture;
 
     public OpenGLRenderer(Context context) {
         this.context = context;
-        float[] tableVertices = {
-                //Triangle Fan
-                0f, 0f, 1f, 1f, 1f,
-                -0.5f, -0.6f, 0.7f, 0.7f, 0.7f,
-                0.5f, -0.6f, 0.7f, 0.7f, 0.7f,
-                0.5f, 0.6f, 0.7f, 0.7f, 0.7f,
-                -0.5f, 0.6f, 0.7f, 0.7f, 0.7f,
-                -0.5f, -0.6f, 0.7f, 0.7f, 0.7f,
-                //中间分割线
-                -0.5f, 0f, 1f, 0f, 0f,
-                0.5f, 0f, 1f, 0f, 0f,
-                //上下半场的两个点(木槌)
-                0f, -0.3f, 0f, 0f, 1f,
-                0f, 0.3f, 1f, 0f, 0f,
-        };
-        //防止顶点数据被java垃圾回收机制回收
-        verticesData = ByteBuffer.
-                allocateDirect(tableVertices.length * BYTES_PER_FLOAT).//分配多大内存
-                order(ByteOrder.nativeOrder()).//保证同一个平台使用一个排序
-                asFloatBuffer();
-        verticesData.put(tableVertices);//把数据从Dalvik虚拟机内存复制到本地内存，进程结束时释放
     }
 
     /**
@@ -95,34 +56,12 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         // Set the background color to black ( rgba ).
-        glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
-        //读取对应的shader文件
-        String vertexShaderSource = TextResourceReader.readTextFileFromResource(context, R.raw.simple_vertex_shader);
-        String fragmentShaderSource = TextResourceReader.readTextFileFromResource(context, R.raw.simple_fragment_shader);
-        //获取Shader对象
-        int vertexShader = ShaderHelper.compileVertexShader(vertexShaderSource);
-        int fragmentShader = ShaderHelper.compileFragmentShader(fragmentShaderSource);
-        //把顶点shader和片shader关联起来
-        int programObject = ShaderHelper.linkProgram(vertexShader, fragmentShader);
-        //验证程序是否可用，可以不加
-        ShaderHelper.validateStatus(programObject);
-        //告诉屏幕绘制任何东西都要使用这里的自定义程序
-        glUseProgram(programObject);
-        //去shader文件中对应的属性
-        int aColorLocation = glGetAttribLocation(programObject, A_COLOR);
-        int aPositionLocation = glGetAttribLocation(programObject, A_POSITION);
-        uMatrixLocation = glGetUniformLocation(programObject, U_MATRIX);
-        //确保从头开始读取
-        verticesData.position(0);
-        //告诉OPenGL可以在verticesData缓冲区找到a_position
-        glVertexAttribPointer(aPositionLocation, POSITION_COMPONENT_COUNT, GL_FLOAT, false, STRIDE, verticesData);
-        glEnableVertexAttribArray(aPositionLocation);
-
-        //颜色绑定，跳过顶点
-        verticesData.position(POSITION_COMPONENT_COUNT);
-        //告诉OPenGL可以在verticesData缓冲区找到a_Color
-        glVertexAttribPointer(aColorLocation, COLOR_COMPONENT_COUNT, GL_FLOAT, false, STRIDE, verticesData);
-        glEnableVertexAttribArray(aColorLocation);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        table = new Table();
+        mallet = new Mallet();
+        textureShaderProgram = new TextureShaderProgram(context);
+        colorShaderProgram = new ColorShaderProgram(context);
+        texture = TextureHelper.loadTexture(context, R.drawable.air_hockey_surface);
     }
 
     /**
@@ -162,14 +101,13 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
     public void onDrawFrame(GL10 gl) {
         //清空屏幕上的颜色，并且调用crete里面glClearColor（）设置的颜色填充屏幕
         glClear(GL_COLOR_BUFFER_BIT);
-        //矩阵
-        glUniformMatrix4fv(uMatrixLocation, 1, false, projectionMatrix, 0);
-        //告诉OpenGL要画的图形（三角形），从顶点数组的开头开始读取，告诉OPenGl有6个顶点
-        glDrawArrays(GL_TRIANGLE_FAN, 0, 6);
-        //画中间分隔线
-        glDrawArrays(GL_LINES, 6, 2);
-        //画两个棒槌
-        glDrawArrays(GL_POINTS, 8, 1);
-        glDrawArrays(GL_POINTS, 9, 1);
+        textureShaderProgram.userProgram();
+        textureShaderProgram.setUniforms(projectionMatrix, texture);
+        table.bindData(textureShaderProgram);
+        table.draw();
+        colorShaderProgram.userProgram();
+        colorShaderProgram.setUniforms(projectionMatrix);
+        mallet.bindData(colorShaderProgram);
+        mallet.draw();
     }
 }

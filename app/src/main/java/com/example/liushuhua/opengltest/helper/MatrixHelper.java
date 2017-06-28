@@ -2,7 +2,7 @@ package com.example.liushuhua.opengltest.helper;
 
 /**
  * Created by LiuShuHua on 2017/6/27.
- * description：
+ * description：矩阵帮助类
  */
 
 public class MatrixHelper {

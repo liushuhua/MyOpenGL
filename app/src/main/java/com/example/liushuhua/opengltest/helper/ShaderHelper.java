@@ -22,7 +22,7 @@ import static android.opengl.GLES20.glValidateProgram;
 
 /**
  * Created by LiuShuHua on 2017/6/26.
- * description：
+ * description：着色器帮助类
  */
 
 public class ShaderHelper {
@@ -97,6 +97,7 @@ public class ShaderHelper {
 
     /**
      * 证实Program是否可用
+     *
      * @param program program
      * @return 是否可用
      */
@@ -106,5 +107,22 @@ public class ShaderHelper {
         glGetProgramiv(program, GL_VALIDATE_STATUS, validateStatus, 0);
         LogUtils.w(TAG, "Result of validating program: " + validateStatus[0]);
         return validateStatus[0] != 0;
+    }
+
+    /**
+     * 获取program
+     *
+     * @param vertexShaderSource   顶点资源
+     * @param fragmentShaderSource 片资源
+     * @return program
+     */
+    public static int buildProgram(String vertexShaderSource, String fragmentShaderSource) {
+        int program;
+        int vertexShader = compileVertexShader(vertexShaderSource);
+        int fragmentShader = compileFragmentShader(fragmentShaderSource);
+        program = linkProgram(vertexShader, fragmentShader);
+        //打印信息
+        validateStatus(program);
+        return program;
     }
 }
