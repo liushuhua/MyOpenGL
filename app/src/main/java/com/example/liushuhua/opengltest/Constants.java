@@ -6,5 +6,6 @@ package com.example.liushuhua.opengltest;
  */
 
 public class Constants {
+    //float所占的字节数
     public static final int BYTES_PER_FLOAT = 4;
 }

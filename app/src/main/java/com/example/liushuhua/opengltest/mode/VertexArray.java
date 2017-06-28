@@ -20,6 +20,7 @@ public class VertexArray {
     private final FloatBuffer floatBuffer;
 
     public VertexArray(float[] vertexData) {
+        //数据本地化，防止被垃圾回收机制回收
         floatBuffer = ByteBuffer.allocateDirect(vertexData.length * Constants.BYTES_PER_FLOAT)
                 .order(ByteOrder.nativeOrder())
                 .asFloatBuffer()
@@ -27,6 +28,7 @@ public class VertexArray {
     }
 
     public void setVertexAttributePointer(int dataOffset, int attributeLocation, int componentCount, int stride) {
+        //把数据存在FloatBuffer中
         floatBuffer.position(dataOffset);
         glVertexAttribPointer(attributeLocation, componentCount, GL_FLOAT, false, stride, floatBuffer);
         glEnableVertexAttribArray(attributeLocation);
