@@ -136,12 +136,18 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
     public void onSurfaceChanged(GL10 gl, int width, int height) {
         // 设置视口（Viewport）尺寸,就是告诉OpenGL可以用来渲染Surface的大小
         glViewport(0, 0, width, height);
+        //投影矩阵
         MatrixHelper.perspectiveM(projectionMatrix, 45, (float) width / (float) height, 1.0f, 10f);
         setIdentityM(modelMatrix, 0);
+        //z轴平移
         translateM(modelMatrix, 0, 0f, 0f, -2.5f);
+        //绕X旋转
         rotateM(modelMatrix, 0, -45f, 1f, 0f, 0f);
+        //临时存储数据
         final float[] temp = new float[16];
+        //矩阵相乘
         multiplyMM(temp, 0, projectionMatrix, 0, modelMatrix, 0);
+        //Copy数据
         System.arraycopy(temp, 0, projectionMatrix, 0, temp.length);
     }
 
