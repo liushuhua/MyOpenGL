@@ -6,6 +6,7 @@ import android.opengl.GLSurfaceView;
 import com.example.liushuhua.opengltest.helper.MatrixHelper;
 import com.example.liushuhua.opengltest.helper.TextureHelper;
 import com.example.liushuhua.opengltest.mode.Mallet;
+import com.example.liushuhua.opengltest.mode.Puck;
 import com.example.liushuhua.opengltest.mode.Table;
 import com.example.liushuhua.opengltest.program.ColorShaderProgram;
 import com.example.liushuhua.opengltest.program.TextureShaderProgram;
@@ -20,6 +21,7 @@ import static android.opengl.GLES20.glViewport;
 import static android.opengl.Matrix.multiplyMM;
 import static android.opengl.Matrix.rotateM;
 import static android.opengl.Matrix.setIdentityM;
+import static android.opengl.Matrix.setLookAtM;
 import static android.opengl.Matrix.translateM;
 
 /**
@@ -38,9 +40,13 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
     private Context context;
     private Table table;
     private Mallet mallet;
+    private Puck puck;
     private TextureShaderProgram textureShaderProgram;
     private ColorShaderProgram colorShaderProgram;
     private int texture;
+    private final float[] viewMatrix = new float[16];
+    private final float[] viewProjectionMatrix = new float[16];
+    private final float[] modelViewProjectMatrix = new float[16];
 
     public OpenGLRenderer(Context context) {
         this.context = context;
@@ -58,7 +64,8 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         // Set the background color to black ( rgba ).
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         table = new Table();
-        mallet = new Mallet();
+        mallet = new Mallet(0.08f, 0.15f, 32);
+        puck = new Puck(0.06f, 0.02f, 32);
         textureShaderProgram = new TextureShaderProgram(context);
         colorShaderProgram = new ColorShaderProgram(context);
         texture = TextureHelper.loadTexture(context, R.drawable.air_hockey_surface);
@@ -77,6 +84,7 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         glViewport(0, 0, width, height);
         //投影矩阵
         MatrixHelper.perspectiveM(projectionMatrix, 45, (float) width / (float) height, 1.0f, 10f);
+        setLookAtM(viewMatrix, 0, 0f, 1.2f, 2.2f, 0f, 0f, 0f, 0f, 1f, 0f);
         setIdentityM(modelMatrix, 0);
         //z轴平移
         translateM(modelMatrix, 0, 0f, 0f, -2.5f);
@@ -101,13 +109,36 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
     public void onDrawFrame(GL10 gl) {
         //清空屏幕上的颜色，并且调用crete里面glClearColor（）设置的颜色填充屏幕
         glClear(GL_COLOR_BUFFER_BIT);
+        multiplyMM(viewProjectionMatrix, 0, projectionMatrix, 0, viewMatrix, 0);
+        positionTableInScene();
         textureShaderProgram.userProgram();
         textureShaderProgram.setUniforms(projectionMatrix, texture);
         table.bindData(textureShaderProgram);
         table.draw();
+        positionObjectInScene(0f, mallet.height / 2f, -0.4f);
         colorShaderProgram.userProgram();
-        colorShaderProgram.setUniforms(projectionMatrix);
+        colorShaderProgram.setUniforms(modelViewProjectMatrix, 1f, 0f, 0f);
         mallet.bindData(colorShaderProgram);
         mallet.draw();
+        positionObjectInScene(0f, mallet.height / 2f, 0.4f);
+        colorShaderProgram.setUniforms(modelViewProjectMatrix, 0f, 0f, 1f);
+        mallet.draw();
+        //draw puck
+        positionObjectInScene(0f, puck.height / 2f, 0f);
+        colorShaderProgram.setUniforms(modelViewProjectMatrix, 0.8f, 0.8f, 1f);
+        puck.bindData(colorShaderProgram);
+        puck.draw();
+    }
+
+    private void positionObjectInScene(float x, float y, float z) {
+        setIdentityM(modelMatrix, 0);
+        translateM(modelMatrix, 0, x, y, z);
+        multiplyMM(modelViewProjectMatrix, 0, viewProjectionMatrix, 0, modelMatrix, 0);
+    }
+
+    private void positionTableInScene() {
+        setIdentityM(modelMatrix, 0);
+        rotateM(modelMatrix, 0, -90f, 1f, 0f, 0f);
+        multiplyMM(modelViewProjectMatrix, 0, viewProjectionMatrix, 0, modelMatrix, 0);
     }
 }
